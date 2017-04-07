@@ -14,6 +14,7 @@ class ChatBar extends Component {
   handleKeyPress(ev, type) {
     if (ev.key === "Enter") {
       this.props.handleSubmit(this.state, type);
+      this.setState({content: ''})
     } else {
       this.setState({
         [type]: ev.target.value
@@ -21,8 +22,11 @@ class ChatBar extends Component {
     }
   }
 
+
+
   render() {
     return (
+
       <footer className="chatbar">
       <input className="chatbar-username"
       placeholder="[Your Name (Optional)]"

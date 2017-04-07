@@ -7,14 +7,7 @@ import MessageList from './MessageList.jsx';
 
 
 
-
-
-
-
-
 class App extends Component {
-
-
 
 
  constructor(props) {
@@ -22,26 +15,18 @@ class App extends Component {
     this.state = {
 
 
-       currentUser: {name: "Bob"}, // optional. if currentUser is not defined, it means the user is Anonymous
-        messages: [
-                    {
-                      id: 1,
-                      username: "Bob",
-                      content: "Has anyone seen my marbles?",
-                    },
-                    {
-                      id: 2,
-                      username: "Anonymous",
-                      content: "No, I think you lost them. You lost your marbles Bob. You lost them for good."
-                    }
-                  ],
-                  id: 3
+       currentUser: {name: "",
+                      color: ""}, // optional. if currentUser is not defined, it means the user is Anonymous
+        messages: [],
+
+        userCount: ""
+
                 }
 
 
-    this.handleUserChange = this.handleUserChange.bind(this);
-    this.handleMessageChange = this.handleMessageChange.bind(this);
+
     this.handleSubmit = this.handleSubmit.bind(this);
+
   }
 
 componentDidMount() {
@@ -49,63 +34,131 @@ componentDidMount() {
 // var ws = new WebSocket("ws://localhost:3001");
 // Use a publicly available IP to accept connections from other people!
 // var ws = new WebSocket("ws://172.46.3.30:5000");
-var ws = new WebSocket("ws://localhost:3001");
+  this.ws = new WebSocket("ws://localhost:3001");
 
-  ws.onopen = function (event) {
+  this.ws.onopen = function (event) {
     console.log("Connected to server");
-  };
+  }
+
+  this.ws.onmessage = function (event) {
+    var incoming = JSON.parse(event.data);
+
+
+    // If incoming message is update in user count, a new message, or a changed username
+
+    if (incoming.type === "usercount") {
+      this.setState({
+        currentUser: this.state.currentUser,
+        messages: this.state.messages,
+        userCount: incoming.number
+      })
+
+    } else if (incoming.type === "newmessage") {
+      this.setState({
+        currentUser: this.state.currentUser,
+        messages: this.state.messages.concat(incoming)
+      })
+
+    } else if (incoming.type === "newusername") {
+       this.setState({
+        currentUser: {name: incoming.username,
+                      oldname: incoming.oldname,
+                      color: incoming.color},
+        messages: this.state.messages.concat(incoming)
+       })
+    }
+
+  }.bind(this);
+
+  // this.ws.onmessage = (event) => {
+
+  // }
 
 }
 
 
 
 
-// in App.jsx
-// addMessage() {
-//     console.log("hello");
-//     alert("pressed");
-//     if (event.key == 13) {
-//       console.log("Enter!");
-//     }
-//     // Add a new message to the list of messages in the data store
-//     // const newMessage = {id: 3, username: "Michelle", content: "Hello there!"};
-//     // const messages = this.state.messages.concat(newMessage)
-//     // // Update the state of the app component.
-//     // // Calling setState will trigger a call to render() in App and all child components.
-//     // this.setState({messages: messages})
-//   };
+
+handleSubmit(data, type) {
+
+    // Function to generate random colour (copied from web)
+    function getRandomColor() {
+          var letters = '0123456789ABCDEF';
+          var color = '#';
+          for (var i = 0; i < 6; i++ ) {
+            color += letters[Math.floor(Math.random() * 16)];
+          }
+          return color;
+        }
 
 
+      if (type === "content") {
+        let content;
+        // Check to see if user wants to change their colour
+        // If so, change and display message
+        let color;
+        if (data.content === "/color" && this.state.currentUser.name) {
+          content = this.state.currentUser.name + " changed colors!";
+          color = getRandomColor();
+        } else {
+          content = data.content;
+          color = this.state.currentUser.color;
+        }
 
 
-  handleSubmit(data, type) {
+        var serverMessage = {
+          type: "newmessage",
+          username: this.state.currentUser.name,
+          color: color,
+          content: content
+        };
 
-      const newMessage = {id: this.state.id++, username: data.username, content: data.content };
-      console.log(newMessage)
-      const messages = this.state.messages.concat(newMessage);
-      this.setState({messages: messages});
+      if (!data.content || !data.content.replace(/\s+/g, '')) {
+        var blank = true;
+      }
 
+      } else if (type === "username") {
+
+        console.log(this.state.currentUser)
+        // Allow random colour only on change from initial Anonymous
+        // User keeps same colour when changing name, unless back to Anonymous (in which case, black)
+        let color;
+
+        if (data.username && !this.state.currentUser.name) {
+          color = getRandomColor();
+        } else if (!data.username) {
+          color = "#000000";
+        } else {
+          color = this.state.currentUser.color;
+        }
+        var serverMessage = {
+          type: "newusername",
+          username: data.username,
+          oldname: this.state.currentUser.name,
+          color: color
+        }
+
+      }
+
+      // Ensure message is not blank or just spaces before sending to server
+      if (!blank) {
+        this.ws.send(JSON.stringify(serverMessage));
+      }
   }
-
-  handleUserChange(event) {
-    alert('changed user');
-    // this.setState({username: event.target.value});
-  }
-
-  handleMessageChange(event) {
-     alert('changed content');
-    // this.setState({content: event.target.value});
-  }
-
-
 
 
 
   render() {
+
+
     return (
     <div>
       <nav className="navbar">
   <a href="/" className="navbar-brand">Chatty</a>
+  <div className="usersonline">
+    {this.state.userCount} user(s) online
+  </div>
 </nav>
 
 <MessageList messages = {this.state.messages} />
@@ -127,4 +180,6 @@ var ws = new WebSocket("ws://localhost:3001");
 
 
 }
+
+
 export default App;

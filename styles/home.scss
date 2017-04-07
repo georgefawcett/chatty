@@ -9,8 +9,12 @@
       margin: 70px 0;
     }
 
+    .main {
+    overflow: auto
+    }
+
     .chatbar {
-      background: tomato;
+      background: #336699;
       border-top: 1px solid black;
       bottom: 0;
       display: flex;
@@ -65,7 +69,8 @@
     }
 
     .navbar {
-      background: tomato;
+      background: #336699;
+      color: white;
       border-bottom: 1px solid black;
       height: 60px;
       left: 0;
@@ -73,6 +78,11 @@
       position: fixed;
       right: 0;
       top: 0;
+    }
+
+    .usersonline {
+      float: right;
+      margin-top: 22px
     }
 
     .navbar-brand {
